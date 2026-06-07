@@ -1,0 +1,256 @@
+// AWMD Weather - Marathi & English Translations
+export type Language = 'mr' | 'en';
+
+const translations = {
+  mr: {
+    // App
+    appName: 'AWMD हवामान',
+    appFullName: 'आळंदी हवामान व मौसमविभाग',
+    dept: 'AWMD',
+
+    // Navigation
+    home: 'मुख्यपृष्ठ',
+    forecast: 'अंदाज',
+    maps: 'नकाशे',
+    alerts: 'इशारे',
+
+    // Weather params
+    temperature: 'तापमान',
+    feelsLike: 'जाणवते',
+    humidity: 'आर्द्रता',
+    wind: 'वारा',
+    windSpeed: 'वारा वेग',
+    windDirection: 'वारा दिशा',
+    pressure: 'हवा दाब',
+    visibility: 'दृश्यमानता',
+    uvIndex: 'UV निर्देशांक',
+    cloudCover: 'ढग आवरण',
+    dewPoint: 'दव बिंदू',
+    precipitation: 'पर्जन्य',
+    lastUpdated: 'शेवटचे अद्यतन',
+
+    // Forecast
+    hourly: 'तासिक',
+    daily: 'दैनिक',
+    hourlyForecast: 'तासिक अंदाज',
+    dailyForecast: 'दैनिक अंदाज',
+    rainProbability: 'पाऊस संभावना',
+    thunderstormProb: 'वादळ संभावना',
+    high: 'कमाल',
+    low: 'किमान',
+    sunrise: 'सूर्योदय',
+    sunset: 'सूर्यास्त',
+    moonrise: 'चंद्रोदय',
+    moonset: 'चंद्रास्त',
+
+    // Maps
+    radar: 'राडार',
+    satellite: 'उपग्रह',
+    rainfall: 'पर्जन्यमान',
+    windMap: 'वारा नकाशा',
+    cloudMap: 'ढग नकाशा',
+    lightningMap: 'वीज नकाशा',
+    selectLayer: 'थर निवडा',
+
+    // Alerts
+    alertsTitle: 'हवामान इशारे',
+    redAlert: 'लाल इशारा',
+    orangeAlert: 'नारिंगी इशारा',
+    yellowAlert: 'पिवळा इशारा',
+    greenStatus: 'हिरवी स्थिती',
+    noAlerts: 'सध्या कोणतेही सक्रिय इशारे नाहीत',
+    officialAlerts: 'अधिकृत इशारे',
+    awmdAlerts: 'AWMD स्वयंचलित इशारे',
+    awmdAlertEngine: 'AWMD स्वयं-इशारा यंत्रणा',
+
+    // Alert types
+    heavyRain: 'जोरदार पाऊस',
+    thunderstorm: 'वादळी पाऊस',
+    lightning: 'विजेचा धोका',
+    strongWinds: 'तीव्र वारे',
+    heatWave: 'उष्णतेची लाट',
+    moderateRain: 'मध्यम पाऊस',
+    highUV: 'तीव्र UV किरणे',
+
+    // Location
+    currentLocation: 'सध्याचे स्थान',
+    searchCity: 'शहर शोधा',
+    favorites: 'आवडते',
+    addFavorite: 'आवडत्यांमध्ये जोडा',
+    removeFavorite: 'आवडत्यांमधून काढा',
+    searchPlaceholder: 'शहर किंवा जिल्हा शोधा...',
+    noResults: 'कोणतेही परिणाम नाहीत',
+    recentSearches: 'अलीकडील शोध',
+
+    // Status
+    loading: 'लोड होत आहे...',
+    loadingWeather: 'हवामान डेटा मिळवत आहे...',
+    error: 'त्रुटी',
+    retry: 'पुन्हा प्रयत्न करा',
+    refresh: 'ताजे करा',
+    refreshing: 'ताजे करत आहे...',
+    networkError: 'इंटरनेट कनेक्शन तपासा',
+    locationError: 'स्थान मिळवता आले नाही',
+
+    // Settings
+    settings: 'सेटिंग्ज',
+    language: 'भाषा',
+    theme: 'थीम',
+    darkMode: 'गडद मोड',
+    lightMode: 'प्रकाश मोड',
+    notifications: 'सूचना',
+    units: 'एकके',
+    metric: 'मेट्रिक',
+    imperial: 'इंपीरियल',
+
+    // AWMD Local Intelligence
+    localIntelligence: 'स्थानिक हवामान विश्लेषण',
+    cloudMovement: 'ढगांची हालचाल',
+    localObservation: 'स्थानिक निरीक्षण',
+
+    // Notifications
+    notifHeavyRain: 'जोरदार पाऊस इशारा',
+    notifThunderstorm: 'वादळाचा इशारा',
+    notifLightning: 'विजेचा इशारा',
+    notifDailyForecast: 'दैनिक हवामान अंदाज',
+
+    // Condition translations
+    conditions: {
+      sunny: 'ऊन',
+      mostlySunny: 'प्रामुख्याने ऊन',
+      partlyCloudy: 'अंशत: ढगाळ',
+      mostlyCloudy: 'प्रामुख्याने ढगाळ',
+      cloudy: 'ढगाळ',
+      overcast: 'आच्छादित',
+      fog: 'धुके',
+      rain: 'पाऊस',
+      heavyRain: 'जोरदार पाऊस',
+      thunderstorm: 'वादळी पाऊस',
+      drizzle: 'रिमझिम',
+      clear: 'स्वच्छ',
+      hot: 'उष्ण',
+      cold: 'थंड',
+    },
+  },
+
+  en: {
+    appName: 'AWMD Weather',
+    appFullName: 'Alandi Weather & Meteorological Dept.',
+    dept: 'AWMD',
+
+    home: 'Home',
+    forecast: 'Forecast',
+    maps: 'Maps',
+    alerts: 'Alerts',
+
+    temperature: 'Temperature',
+    feelsLike: 'Feels Like',
+    humidity: 'Humidity',
+    wind: 'Wind',
+    windSpeed: 'Wind Speed',
+    windDirection: 'Wind Direction',
+    pressure: 'Pressure',
+    visibility: 'Visibility',
+    uvIndex: 'UV Index',
+    cloudCover: 'Cloud Cover',
+    dewPoint: 'Dew Point',
+    precipitation: 'Precipitation',
+    lastUpdated: 'Last Updated',
+
+    hourly: 'Hourly',
+    daily: 'Daily',
+    hourlyForecast: 'Hourly Forecast',
+    dailyForecast: 'Daily Forecast',
+    rainProbability: 'Rain Probability',
+    thunderstormProb: 'Thunderstorm Probability',
+    high: 'High',
+    low: 'Low',
+    sunrise: 'Sunrise',
+    sunset: 'Sunset',
+    moonrise: 'Moonrise',
+    moonset: 'Moonset',
+
+    radar: 'Radar',
+    satellite: 'Satellite',
+    rainfall: 'Rainfall',
+    windMap: 'Wind Map',
+    cloudMap: 'Cloud Map',
+    lightningMap: 'Lightning Map',
+    selectLayer: 'Select Layer',
+
+    alertsTitle: 'Weather Alerts',
+    redAlert: 'Red Alert',
+    orangeAlert: 'Orange Alert',
+    yellowAlert: 'Yellow Alert',
+    greenStatus: 'Green Status',
+    noAlerts: 'No active alerts at this time',
+    officialAlerts: 'Official Alerts',
+    awmdAlerts: 'AWMD Auto Alerts',
+    awmdAlertEngine: 'AWMD Automatic Alert Engine',
+
+    heavyRain: 'Heavy Rain',
+    thunderstorm: 'Thunderstorm',
+    lightning: 'Lightning Risk',
+    strongWinds: 'Strong Winds',
+    heatWave: 'Heat Wave',
+    moderateRain: 'Moderate Rain',
+    highUV: 'High UV Radiation',
+
+    currentLocation: 'Current Location',
+    searchCity: 'Search City',
+    favorites: 'Favorites',
+    addFavorite: 'Add to Favorites',
+    removeFavorite: 'Remove from Favorites',
+    searchPlaceholder: 'Search city or district...',
+    noResults: 'No results found',
+    recentSearches: 'Recent Searches',
+
+    loading: 'Loading...',
+    loadingWeather: 'Fetching weather data...',
+    error: 'Error',
+    retry: 'Retry',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+    networkError: 'Check your internet connection',
+    locationError: 'Could not determine location',
+
+    settings: 'Settings',
+    language: 'Language',
+    theme: 'Theme',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    notifications: 'Notifications',
+    units: 'Units',
+    metric: 'Metric',
+    imperial: 'Imperial',
+
+    localIntelligence: 'Local Weather Analysis',
+    cloudMovement: 'Cloud Movement',
+    localObservation: 'Local Observation',
+
+    notifHeavyRain: 'Heavy Rain Alert',
+    notifThunderstorm: 'Thunderstorm Alert',
+    notifLightning: 'Lightning Alert',
+    notifDailyForecast: 'Daily Weather Forecast',
+
+    conditions: {
+      sunny: 'Sunny',
+      mostlySunny: 'Mostly Sunny',
+      partlyCloudy: 'Partly Cloudy',
+      mostlyCloudy: 'Mostly Cloudy',
+      cloudy: 'Cloudy',
+      overcast: 'Overcast',
+      fog: 'Fog',
+      rain: 'Rain',
+      heavyRain: 'Heavy Rain',
+      thunderstorm: 'Thunderstorm',
+      drizzle: 'Drizzle',
+      clear: 'Clear',
+      hot: 'Hot',
+      cold: 'Cold',
+    },
+  },
+} as const;
+
+export type TranslationKey = keyof typeof translations.en;
+export default translations;

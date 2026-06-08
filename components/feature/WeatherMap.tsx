@@ -94,7 +94,7 @@ function MapContent({
       {/* Attribution */}
       <View style={[styles.attribution, { backgroundColor: theme.surface + 'CC' }]}>
         <Text style={[styles.attributionText, { color: theme.textTertiary }]}>
-          © AccuWeather | © OpenStreetMap
+          © OpenWeatherMap | © OpenStreetMap
         </Text>
       </View>
     </View>

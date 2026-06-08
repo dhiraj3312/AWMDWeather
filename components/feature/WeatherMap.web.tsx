@@ -79,8 +79,8 @@ function MapContent({
           <MaterialIcons name="info-outline" size={16} color={theme.primary} />
           <Text style={[styles.noteText, { color: theme.textSecondary }]}>
             {language === 'mr'
-              ? `${layerName} थर Android/iOS अॅपमध्ये उपलब्ध. वेब वर OpenStreetMap बेस नकाशा दाखवला आहे.`
-              : `${layerName} layer available in Android/iOS app. Showing OpenStreetMap base on web.`}
+              ? `${layerName} थर Android/iOS अॅपमध्ये OpenWeatherMap द्वारे उपलब्ध. वेब वर OpenStreetMap बेस नकाशा दाखवला आहे.`
+              : `${layerName} layer powered by OpenWeatherMap on Android/iOS. Showing OpenStreetMap base on web.`}
           </Text>
         </View>
       ) : null}

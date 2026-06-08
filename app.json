@@ -1,64 +1,40 @@
 {
   "expo": {
-    "name": "AWMD Weather",
-    "slug": "awmd-weather",
+    "name": "onspace-app",
+    "slug": "onspace-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/awmd-logo.png",
-    "scheme": "awmdweather",
+    "icon": "./assets/images/logo.png",
+    "scheme": "onspaceapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.awmd.weather",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "AWMD Weather needs your location to show local weather conditions.",
-        "NSLocationAlwaysUsageDescription": "AWMD Weather needs your location to show local weather conditions."
-      }
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.awmd.weather",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/awmd-logo.png",
-        "backgroundColor": "#0A1628"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ]
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/awmd-logo.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/awmd-logo.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#0A1628"
+          "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser",
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow AWMD Weather to use your location."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/awmd-logo.png",
-          "color": "#F59E0B"
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

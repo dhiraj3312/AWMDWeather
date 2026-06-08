@@ -5,11 +5,15 @@ import { CONFIG } from '@/constants/config';
 const BASE = CONFIG.BASE_URL;
 const KEY = CONFIG.API_KEY;
 
-// On web the Live Preview iframe is blocked by CORS — proxy via allorigins
+// CORS proxies tried in order on web
+const CORS_PROXIES = [
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
 function buildUrl(path: string): string {
-  const direct = `${BASE}${path}`;
-  if (Platform.OS !== 'web') return direct;
-  return `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`;
+  return `${BASE}${path}`;
 }
 
 export interface LocationResult {
@@ -116,45 +120,74 @@ export interface WeatherAlert {
 }
 
 class AccuWeatherService {
-  private async fetch<T>(url: string): Promise<T> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      if (response.status === 401) throw new Error('INVALID_API_KEY');
-      if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
-      if (response.status === 404) throw new Error('NOT_FOUND');
-      throw new Error(`HTTP_ERROR_${response.status}`);
+  private async fetch<T>(directUrl: string): Promise<T> {
+    // On native — direct call
+    if (Platform.OS !== 'web') {
+      const response = await fetch(directUrl);
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('INVALID_API_KEY');
+        if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
+        if (response.status === 404) throw new Error('NOT_FOUND');
+        throw new Error(`HTTP_ERROR_${response.status}`);
+      }
+      return response.json();
     }
-    return response.json();
+
+    // On web — try CORS proxies in order
+    let lastError: any;
+    for (const makeProxy of CORS_PROXIES) {
+      try {
+        const proxyUrl = makeProxy(directUrl);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        const response = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('INVALID_API_KEY');
+          if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
+          if (response.status === 404) throw new Error('NOT_FOUND');
+          throw new Error(`HTTP_ERROR_${response.status}`);
+        }
+        const text = await response.text();
+        return JSON.parse(text) as T;
+      } catch (err: any) {
+        // AbortError or network error — try next proxy
+        lastError = err;
+        if (err.message === 'INVALID_API_KEY' || err.message === 'API_LIMIT_EXCEEDED') throw err;
+        continue;
+      }
+    }
+    throw lastError ?? new Error('All CORS proxies failed');
   }
 
   async getLocationByGeoPosition(lat: number, lon: number): Promise<LocationResult> {
-    const url = buildUrl(`/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${lat},${lon}&toplevel=false`);
+    const url = `${BASE}/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${lat},${lon}&toplevel=false`;
     return this.fetch<LocationResult>(url);
   }
 
   async searchLocations(query: string, language = 'en-us'): Promise<LocationResult[]> {
     const encoded = encodeURIComponent(query);
-    const url = buildUrl(`/locations/v1/cities/search?apikey=${KEY}&q=${encoded}&language=${language}`);
+    const url = `${BASE}/locations/v1/cities/search?apikey=${KEY}&q=${encoded}&language=${language}`;
     return this.fetch<LocationResult[]>(url);
   }
 
   async getCurrentConditions(locationKey: string): Promise<CurrentConditions[]> {
-    const url = buildUrl(`/currentconditions/v1/${locationKey}?apikey=${KEY}&details=true`);
+    const url = `${BASE}/currentconditions/v1/${locationKey}?apikey=${KEY}&details=true`;
     return this.fetch<CurrentConditions[]>(url);
   }
 
   async getHourlyForecast(locationKey: string, hours: 12 | 24 = 12): Promise<HourlyForecast[]> {
-    const url = buildUrl(`/forecasts/v1/hourly/${hours}hour/${locationKey}?apikey=${KEY}&details=true&metric=true`);
+    const url = `${BASE}/forecasts/v1/hourly/${hours}hour/${locationKey}?apikey=${KEY}&details=true&metric=true`;
     return this.fetch<HourlyForecast[]>(url);
   }
 
   async getDailyForecast(locationKey: string, days: 5 | 10 | 15 = 15): Promise<DailyForecastResponse> {
-    const url = buildUrl(`/forecasts/v1/daily/${days}day/${locationKey}?apikey=${KEY}&details=true&metric=true`);
+    const url = `${BASE}/forecasts/v1/daily/${days}day/${locationKey}?apikey=${KEY}&details=true&metric=true`;
     return this.fetch<DailyForecastResponse>(url);
   }
 
   async getAlerts(locationKey: string): Promise<WeatherAlert[]> {
-    const url = buildUrl(`/alerts/v1/${locationKey}?apikey=${KEY}&details=true`);
+    const url = `${BASE}/alerts/v1/${locationKey}?apikey=${KEY}&details=true`;
     return this.fetch<WeatherAlert[]>(url);
   }
 

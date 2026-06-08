@@ -1,49 +1,51 @@
-name: Build Expo Android APK
-on: [push, workflow_dispatch]
+name: Build AWMD Weather Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+          node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: pnpm install
+        run: npm install
 
-      - name: Install Expo CLI globally
-        run: pnpm add -g expo-cli
-
-      - name: Prebuild Expo to generate Android folder
-        run: pnpm expo prebuild --platform android
-
-      - name: Setup Java JDK
+      - name: Setup Java JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli@latest
+
+      - name: Prebuild Expo Android
+        run: npx expo prebuild --platform android --clean
 
       - name: Build Android Release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-Expo-APK
+          name: AWMD-Weather-APK
           path: android/app/build/outputs/apk/release/app-release.apk
-          
+          retention-days: 30

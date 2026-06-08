@@ -25,11 +25,13 @@ export default function MapsScreen() {
   const { theme } = useTheme();
   const { t, language } = useLanguage();
   const { activeLocation } = useWeather();
-  const [activeLayer, setActiveLayer] = useState('satrad');
+  const [activeLayer, setActiveLayer] = useState('precipitation_new');
 
   const layers = CONFIG.MAP_LAYERS;
   const activeLayerConfig = layers.find((l) => l.id === activeLayer);
-  const tileUrl = `${CONFIG.MAPS_TILE_URL}?apikey=${CONFIG.API_KEY}&layer=${activeLayer}&zoom={z}&x={x}&y={y}`;
+  // OpenWeatherMap tile URL — used exclusively for all map layers
+  const owmLayer = activeLayerConfig?.owmLayer ?? activeLayer;
+  const tileUrl = `${CONFIG.OWM_TILE_BASE}/${owmLayer}/{z}/{x}/{y}.png?appid=${CONFIG.OWM_API_KEY}`;
 
   const mapRegion = activeLocation?.lat
     ? {
@@ -42,25 +44,25 @@ export default function MapsScreen() {
 
   const getLayerIcon = (id: string) => {
     switch (id) {
-      case 'sat': return { name: 'satellite', lib: 'material' };
-      case 'satrad': return { name: 'radar', lib: 'material' };
-      case 'stormsurf_rainrate': return { name: 'weather-rainy', lib: 'community' };
-      case 'wind': return { name: 'weather-windy', lib: 'community' };
-      case 'clouds': return { name: 'cloud', lib: 'material' };
-      case 'lightning': return { name: 'weather-lightning', lib: 'community' };
-      default: return { name: 'layers', lib: 'material' };
+      case 'precipitation_new': return { name: 'weather-pouring', lib: 'community' };
+      case 'wind_new':          return { name: 'weather-windy',   lib: 'community' };
+      case 'clouds_new':        return { name: 'cloud',           lib: 'material'  };
+      case 'temp_new':          return { name: 'thermometer',     lib: 'community' };
+      case 'pressure_new':      return { name: 'gauge',           lib: 'community' };
+      case 'snow':              return { name: 'weather-snowy',   lib: 'community' };
+      default:                  return { name: 'layers',          lib: 'material'  };
     }
   };
 
   const getLayerColor = (id: string) => {
     switch (id) {
-      case 'sat': return theme.textSecondary;
-      case 'satrad': return theme.accentBlue;
-      case 'stormsurf_rainrate': return '#42A5F5';
-      case 'wind': return theme.accentCyan;
-      case 'clouds': return '#90A4AE';
-      case 'lightning': return theme.alertYellow;
-      default: return theme.textSecondary;
+      case 'precipitation_new': return '#42A5F5';
+      case 'wind_new':          return theme.accentCyan;
+      case 'clouds_new':        return '#90A4AE';
+      case 'temp_new':          return theme.alertOrange;
+      case 'pressure_new':      return theme.primary;
+      case 'snow':              return '#B3E5FC';
+      default:                  return theme.textSecondary;
     }
   };
 
@@ -122,6 +124,10 @@ export default function MapsScreen() {
           <Text style={[styles.infoPanelText, { color: theme.textSecondary }]}>
             {language === 'mr' ? 'केंद्र: आळंदी म्हातोबाची' : 'Center: Alandi Mhatobachi'}
           </Text>
+          <View style={[styles.owmBadge, { backgroundColor: theme.accentBlue + '20', borderColor: theme.accentBlue + '50' }]}>
+            <MaterialIcons name="layers" size={10} color={theme.accentBlue} />
+            <Text style={[styles.owmBadgeText, { color: theme.accentBlue }]}>OpenWeatherMap</Text>
+          </View>
         </View>
         <View style={styles.infoPanelRow}>
           <MaterialIcons name="info-outline" size={14} color={theme.textTertiary} />
@@ -186,4 +192,15 @@ const styles = StyleSheet.create({
   },
   infoPanelText: { fontSize: 13, fontWeight: '500' },
   infoPanelSub: { fontSize: 11, flex: 1, lineHeight: 16 },
+  owmBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 3,
+    marginLeft: 'auto' as any,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  owmBadgeText: { fontSize: 9, fontWeight: '700' as const },
 });

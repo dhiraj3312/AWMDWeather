@@ -23,26 +23,27 @@ jobs:
 
       - name: Auto Detect framework and Build
         run: |
+          mkdir -p output-apk
           if [ -f pubspec.yaml ]; then
             echo "Detected Flutter Project"
             flutter pub get
             flutter build apk --release
-            mkdir -p output-apk && cp build/app/outputs/flutter-apk/app-release.apk output-apk/
+            cp build/app/outputs/flutter-apk/app-release.apk output-apk/app-release.apk
           elif [ -f package.json ] && [ -d android ]; then
             echo "Detected React Native Project"
             npm install
             cd android && ./gradlew assembleRelease && cd ..
-            mkdir -p output-apk && cp android/app/build/outputs/apk/release/app-release.apk output-apk/
+            cp android/app/build/outputs/apk/release/app-release.apk output-apk/app-release.apk
           elif [ -d android ]; then
             echo "Detected Native Android Project"
             cd android && ./gradlew assembleRelease && cd ..
-            mkdir -p output-apk && cp android/app/build/outputs/apk/release/app-release.apk output-apk/
+            cp android/app/build/outputs/apk/release/app-release.apk output-apk/app-release.apk
           elif [ -f build.gradle ]; then
             echo "Detected Root Android Project"
             ./gradlew assembleRelease
-            mkdir -p output-apk && cp app/build/outputs/apk/release/app-release.apk output-apk/
+            cp app/build/outputs/apk/release/app-release.apk output-apk/app-release.apk
           else
-            echo "Error: No suitable project file found! Creating a placeholder file for check."
+            echo "Error: No suitable project file found!"
             exit 1
           fi
 
@@ -50,12 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: OneSpace-App-APK
-          path: output-apk/*.apk
-          fi
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mobile-App-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: output-apk/app-release.apk
           

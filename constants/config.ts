@@ -43,6 +43,8 @@ export const CONFIG = {
     { id: 'temp_new',           owmLayer: 'temp_new',           label: 'Temperature',   labelMr: 'तापमान' },
     { id: 'pressure_new',       owmLayer: 'pressure_new',       label: 'Pressure',      labelMr: 'दाब' },
     { id: 'snow',               owmLayer: 'snow',               label: 'Snow',          labelMr: 'हिमवर्षाव' },
+    // Windy — special layer: renders live Windy.com embed instead of tile overlay
+    { id: 'windy',              owmLayer: '',                   label: 'Windy Live',    labelMr: 'Windy थेट' },
   ],
 };
 

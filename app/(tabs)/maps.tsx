@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,11 +28,14 @@ export default function MapsScreen() {
   const { activeLocation } = useWeather();
   const [activeLayer, setActiveLayer] = useState('precipitation_new');
 
+  const isWindy = activeLayer === 'windy';
   const layers = CONFIG.MAP_LAYERS;
   const activeLayerConfig = layers.find((l) => l.id === activeLayer);
-  // OpenWeatherMap tile URL — used exclusively for all map layers
+  // OpenWeatherMap tile URL — used for all layers except Windy
   const owmLayer = activeLayerConfig?.owmLayer ?? activeLayer;
-  const tileUrl = `${CONFIG.OWM_TILE_BASE}/${owmLayer}/{z}/{x}/{y}.png?appid=${CONFIG.OWM_API_KEY}`;
+  const tileUrl = isWindy
+    ? ''
+    : `${CONFIG.OWM_TILE_BASE}/${owmLayer}/{z}/{x}/{y}.png?appid=${CONFIG.OWM_API_KEY}`;
 
   const mapRegion = activeLocation?.lat
     ? {
@@ -50,6 +54,7 @@ export default function MapsScreen() {
       case 'temp_new':          return { name: 'thermometer',     lib: 'community' };
       case 'pressure_new':      return { name: 'gauge',           lib: 'community' };
       case 'snow':              return { name: 'weather-snowy',   lib: 'community' };
+      case 'windy':             return { name: 'air',             lib: 'material'  };
       default:                  return { name: 'layers',          lib: 'material'  };
     }
   };
@@ -62,6 +67,7 @@ export default function MapsScreen() {
       case 'temp_new':          return theme.alertOrange;
       case 'pressure_new':      return theme.primary;
       case 'snow':              return '#B3E5FC';
+      case 'windy':             return theme.accentCyan;
       default:                  return theme.textSecondary;
     }
   };
@@ -115,7 +121,20 @@ export default function MapsScreen() {
         mapRegion={mapRegion}
         activeLocation={activeLocation ? { lat: activeLocation.lat, lon: activeLocation.lon, name: activeLocation.name } : null}
         getLayerColor={getLayerColor}
+        isWindy={isWindy}
       />
+
+      {/* Windy banner */}
+      {isWindy ? (
+        <View style={[styles.windyBanner, { backgroundColor: theme.accentCyan + '18', borderTopColor: theme.accentCyan + '50' }]}>
+          <MaterialIcons name="air" size={15} color={theme.accentCyan} />
+          <Text style={[styles.windyBannerText, { color: theme.accentCyan }]}>
+            {language === 'mr'
+              ? 'Windy.com — थेट ECMWF मॉडेल | वारा, पाऊस, ढग, तापमान दृश्य'
+              : 'Windy.com — Live ECMWF Model | Wind, Rain, Clouds, Temperature layers'}
+          </Text>
+        </View>
+      ) : null}
 
       {/* AWMD Info Panel */}
       <View style={[styles.infoPanel, { backgroundColor: theme.surface, borderTopColor: theme.surfaceBorder }]}>
@@ -178,6 +197,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+
+  windyBanner: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  windyBannerText: { fontSize: 11, fontWeight: '600' as const, flex: 1 },
 
   infoPanel: {
     paddingHorizontal: 16,

@@ -1,20 +1,8 @@
 // AWMD Weather - AccuWeather API Service
-import { Platform } from 'react-native';
 import { CONFIG } from '@/constants/config';
 
 const BASE = CONFIG.BASE_URL;
 const KEY = CONFIG.API_KEY;
-
-// CORS proxies tried in order on web
-const CORS_PROXIES = [
-  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
-];
-
-function buildUrl(path: string): string {
-  return `${BASE}${path}`;
-}
 
 export interface LocationResult {
   Key: string;
@@ -120,44 +108,15 @@ export interface WeatherAlert {
 }
 
 class AccuWeatherService {
-  private async fetch<T>(directUrl: string): Promise<T> {
-    // On native — direct call
-    if (Platform.OS !== 'web') {
-      const response = await fetch(directUrl);
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('INVALID_API_KEY');
-        if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
-        if (response.status === 404) throw new Error('NOT_FOUND');
-        throw new Error(`HTTP_ERROR_${response.status}`);
-      }
-      return response.json();
+  private async fetch<T>(url: string): Promise<T> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('INVALID_API_KEY');
+      if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
+      if (response.status === 404) throw new Error('NOT_FOUND');
+      throw new Error(`HTTP_ERROR_${response.status}`);
     }
-
-    // On web — try CORS proxies in order
-    let lastError: any;
-    for (const makeProxy of CORS_PROXIES) {
-      try {
-        const proxyUrl = makeProxy(directUrl);
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
-        const response = await fetch(proxyUrl, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!response.ok) {
-          if (response.status === 401) throw new Error('INVALID_API_KEY');
-          if (response.status === 403) throw new Error('API_LIMIT_EXCEEDED');
-          if (response.status === 404) throw new Error('NOT_FOUND');
-          throw new Error(`HTTP_ERROR_${response.status}`);
-        }
-        const text = await response.text();
-        return JSON.parse(text) as T;
-      } catch (err: any) {
-        // AbortError or network error — try next proxy
-        lastError = err;
-        if (err.message === 'INVALID_API_KEY' || err.message === 'API_LIMIT_EXCEEDED') throw err;
-        continue;
-      }
-    }
-    throw lastError ?? new Error('All CORS proxies failed');
+    return response.json();
   }
 
   async getLocationByGeoPosition(lat: number, lon: number): Promise<LocationResult> {

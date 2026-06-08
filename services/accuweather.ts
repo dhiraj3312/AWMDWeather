@@ -1,8 +1,16 @@
 // AWMD Weather - AccuWeather API Service
+import { Platform } from 'react-native';
 import { CONFIG } from '@/constants/config';
 
 const BASE = CONFIG.BASE_URL;
 const KEY = CONFIG.API_KEY;
+
+// On web the Live Preview iframe is blocked by CORS — proxy via allorigins
+function buildUrl(path: string): string {
+  const direct = `${BASE}${path}`;
+  if (Platform.OS !== 'web') return direct;
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`;
+}
 
 export interface LocationResult {
   Key: string;
@@ -120,33 +128,33 @@ class AccuWeatherService {
   }
 
   async getLocationByGeoPosition(lat: number, lon: number): Promise<LocationResult> {
-    const url = `${BASE}/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${lat},${lon}&toplevel=false`;
+    const url = buildUrl(`/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${lat},${lon}&toplevel=false`);
     return this.fetch<LocationResult>(url);
   }
 
   async searchLocations(query: string, language = 'en-us'): Promise<LocationResult[]> {
     const encoded = encodeURIComponent(query);
-    const url = `${BASE}/locations/v1/cities/search?apikey=${KEY}&q=${encoded}&language=${language}`;
+    const url = buildUrl(`/locations/v1/cities/search?apikey=${KEY}&q=${encoded}&language=${language}`);
     return this.fetch<LocationResult[]>(url);
   }
 
   async getCurrentConditions(locationKey: string): Promise<CurrentConditions[]> {
-    const url = `${BASE}/currentconditions/v1/${locationKey}?apikey=${KEY}&details=true`;
+    const url = buildUrl(`/currentconditions/v1/${locationKey}?apikey=${KEY}&details=true`);
     return this.fetch<CurrentConditions[]>(url);
   }
 
   async getHourlyForecast(locationKey: string, hours: 12 | 24 = 12): Promise<HourlyForecast[]> {
-    const url = `${BASE}/forecasts/v1/hourly/${hours}hour/${locationKey}?apikey=${KEY}&details=true&metric=true`;
+    const url = buildUrl(`/forecasts/v1/hourly/${hours}hour/${locationKey}?apikey=${KEY}&details=true&metric=true`);
     return this.fetch<HourlyForecast[]>(url);
   }
 
   async getDailyForecast(locationKey: string, days: 5 | 10 | 15 = 15): Promise<DailyForecastResponse> {
-    const url = `${BASE}/forecasts/v1/daily/${days}day/${locationKey}?apikey=${KEY}&details=true&metric=true`;
+    const url = buildUrl(`/forecasts/v1/daily/${days}day/${locationKey}?apikey=${KEY}&details=true&metric=true`);
     return this.fetch<DailyForecastResponse>(url);
   }
 
   async getAlerts(locationKey: string): Promise<WeatherAlert[]> {
-    const url = `${BASE}/alerts/v1/${locationKey}?apikey=${KEY}&details=true`;
+    const url = buildUrl(`/alerts/v1/${locationKey}?apikey=${KEY}&details=true`);
     return this.fetch<WeatherAlert[]>(url);
   }
 

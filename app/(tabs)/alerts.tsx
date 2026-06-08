@@ -66,6 +66,33 @@ function AlertFilterBtn({ label, level, active, count, onPress }: AlertFilterBtn
   );
 }
 
+// ─── Shared: Resolve alert level from AccuWeather data ─────────────────────────
+function resolveAlertLevel(alert: WeatherAlert): AlertLevel {
+  // 1. Check Category / Type / Description text for explicit color keywords (IMD-style)
+  const haystack = [
+    alert.Category,
+    alert.Type,
+    alert.TypeID,
+    alert.Description?.English,
+    alert.Description?.Localized,
+    ...(alert.Area?.map((a) => a.Text) ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/red/.test(haystack) || /लाल/.test(haystack)) return 'red';
+  if (/orange/.test(haystack) || /नारिंगी/.test(haystack)) return 'orange';
+  if (/yellow/.test(haystack) || /पिवळ/.test(haystack)) return 'yellow';
+  if (/green/.test(haystack) || /हिरव/.test(haystack)) return 'green';
+
+  // 2. Fall back to AccuWeather priority number
+  if (alert.Priority <= 2) return 'red';
+  if (alert.Priority <= 4) return 'orange';
+  if (alert.Priority <= 6) return 'yellow';
+  return 'green';
+}
+
 // ─── Official Alert Detail Modal ──────────────────────────────────────────────
 interface OfficialAlertModalProps {
   alert: WeatherAlert;
@@ -78,14 +105,7 @@ function OfficialAlertModal({ alert, visible, language, onClose }: OfficialAlert
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const getSeverityLevel = (priority: number): AlertLevel => {
-    if (priority <= 2) return 'red';
-    if (priority <= 4) return 'orange';
-    if (priority <= 6) return 'yellow';
-    return 'green';
-  };
-
-  const level = getSeverityLevel(alert.Priority);
+  const level = resolveAlertLevel(alert);
 
   const levelColors: Record<AlertLevel, { bg: string; border: string; text: string; badge: string }> = {
     red:    { bg: theme.alertRedBg,    border: theme.alertRed,    text: theme.alertRed,    badge: '#FF1744' },
@@ -354,14 +374,7 @@ function getSafetyGuidance(category: string, type: string, level: AlertLevel, la
 function OfficialAlertCard({ alert, language, onPress }: { alert: WeatherAlert; language: string; onPress: () => void }) {
   const { theme } = useTheme();
 
-  const getSeverityLevel = (priority: number): AlertLevel => {
-    if (priority <= 2) return 'red';
-    if (priority <= 4) return 'orange';
-    if (priority <= 6) return 'yellow';
-    return 'green';
-  };
-
-  const level = getSeverityLevel(alert.Priority);
+  const level = resolveAlertLevel(alert);
   const getColors = () => {
     switch (level) {
       case 'red':    return { bg: theme.alertRedBg,    border: theme.alertRed,    text: theme.alertRed };

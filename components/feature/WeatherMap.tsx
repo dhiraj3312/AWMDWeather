@@ -1,5 +1,6 @@
-// Native — uses react-native-webview to embed Windy.com radar/weather maps
-import React, { useState, useRef } from 'react';
+// Native — react-native-webview embedding Windy.com
+// SDK 53 compatible, new-arch safe (newArchEnabled: false)
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,19 +8,33 @@ import {
   Pressable,
   Modal,
   Platform,
-  StatusBar,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CONFIG } from '@/constants/config';
 
+// Lazy-require WebView so Metro doesn't bundle it on web
+let WebView: any = null;
+try {
+  WebView = require('react-native-webview').WebView;
+} catch {
+  WebView = null;
+}
+
+interface LayerConfig {
+  label: string;
+  labelMr: string;
+  windyOverlay: string;
+  windyProduct: string;
+}
+
 interface Props {
   activeLayer: string;
-  activeLayerConfig?: { label: string; labelMr: string; windyOverlay: string; windyProduct: string } | undefined;
+  activeLayerConfig?: LayerConfig;
   mapRegion: { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number };
   activeLocation: { lat: number; lon: number; name: string } | null;
   getLayerColor: (id: string) => string;
@@ -32,40 +47,66 @@ function buildWindyUrl(
   product: string,
   zoom = 7
 ): string {
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lon),
-    zoom: String(zoom),
-    level: 'surface',
-    overlay,
-    product,
-    menu: '',
-    message: 'true',
-    marker: 'true',
-    calendar: 'now',
-    pressure: '',
-    type: 'map',
-    location: 'coordinates',
-    detail: '',
-    metricWind: 'km%2Fh',
-    metricTemp: '%C2%B0C',
-    radarRange: '-1',
-  });
-  return `${CONFIG.WINDY_EMBED_BASE}?${params.toString()}`;
+  // Build manually to avoid URLSearchParams encoding issues on older Android
+  const base = CONFIG.WINDY_EMBED_BASE;
+  return (
+    `${base}?lat=${lat}&lon=${lon}&zoom=${zoom}` +
+    `&level=surface&overlay=${overlay}&product=${product}` +
+    `&menu=&message=true&marker=true&calendar=now` +
+    `&pressure=&type=map&location=coordinates&detail=` +
+    `&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`
+  );
 }
 
-function MapContent({
-  activeLayer,
-  activeLayerConfig,
-  mapRegion,
-  activeLocation,
-  getLayerColor,
-  isFullscreen,
-  onToggleFullscreen,
-}: Props & { isFullscreen: boolean; onToggleFullscreen: () => void }) {
+// Fallback when WebView is unavailable (open in browser)
+function MapFallback({
+  windyUrl,
+  layerColor,
+  layerName,
+  language,
+}: {
+  windyUrl: string;
+  layerColor: string;
+  layerName: string;
+  language: string;
+}) {
+  const { theme } = useTheme();
+  return (
+    <View style={[styles.fallback, { backgroundColor: theme.surface, borderColor: theme.surfaceBorder }]}>
+      <MaterialCommunityIcons name="radar" size={48} color={layerColor} />
+      <Text style={[styles.fallbackTitle, { color: theme.textPrimary }]}>{layerName}</Text>
+      <Text style={[styles.fallbackSub, { color: theme.textSecondary }]}>
+        {language === 'mr'
+          ? 'नकाशा उघडण्यासाठी खालील बटण दाबा'
+          : 'Tap below to open the map'}
+      </Text>
+      <Pressable
+        style={({ pressed }) => [
+          styles.fallbackBtn,
+          { backgroundColor: layerColor, opacity: pressed ? 0.8 : 1 },
+        ]}
+        onPress={() => Linking.openURL(windyUrl)}
+      >
+        <MaterialIcons name="open-in-new" size={18} color="#000" />
+        <Text style={styles.fallbackBtnText}>
+          {language === 'mr' ? 'Windy.com उघडा' : 'Open Windy.com'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+interface ContentProps extends Props {
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+}
+
+function MapContent(props: ContentProps) {
+  const { activeLayer, activeLayerConfig, mapRegion, activeLocation, getLayerColor, isFullscreen, onToggleFullscreen } = props;
   const { theme } = useTheme();
   const { language } = useLanguage();
-  const [webLoading, setWebLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [webViewError, setWebViewError] = useState(false);
 
   const lat = activeLocation?.lat ?? mapRegion.latitude;
   const lon = activeLocation?.lon ?? mapRegion.longitude;
@@ -73,66 +114,77 @@ function MapContent({
   const product = activeLayerConfig?.windyProduct ?? 'ecmwf';
   const windyUrl = buildWindyUrl(lat, lon, overlay, product, isFullscreen ? 8 : 7);
   const layerColor = getLayerColor(activeLayer);
-  const layerName = language === 'mr' ? activeLayerConfig?.labelMr : activeLayerConfig?.label;
+  const layerName = language === 'mr' ? (activeLayerConfig?.labelMr ?? activeLayer) : (activeLayerConfig?.label ?? activeLayer);
+
+  const handleLoadEnd = useCallback(() => setLoading(false), []);
+  const handleError = useCallback(() => {
+    setLoading(false);
+    setWebViewError(true);
+  }, []);
 
   return (
-    <View style={[styles.mapContainer, isFullscreen && styles.mapContainerFullscreen]}>
-      <WebView
-        source={{ uri: windyUrl }}
-        style={styles.webview}
-        onLoadStart={() => setWebLoading(true)}
-        onLoadEnd={() => setWebLoading(false)}
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled
-        domStorageEnabled
-        startInLoadingState={false}
-        mixedContentMode="compatibility"
-        originWhitelist={['*']}
-      />
+    <View style={[styles.mapContainer, isFullscreen && styles.mapFull]}>
 
-      {webLoading ? (
-        <View style={[styles.loadingOverlay, { backgroundColor: theme.background + 'CC' }]}>
-          <ActivityIndicator size="large" color={layerColor} />
-          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-            {language === 'mr' ? 'Windy नकाशा लोड होत आहे...' : 'Loading Windy map...'}
-          </Text>
+      {/* Header bar */}
+      <View style={[styles.topBar, { backgroundColor: theme.surface, borderColor: theme.surfaceBorder }]}>
+        <View style={[styles.layerDot, { backgroundColor: layerColor }]} />
+        <Text style={[styles.layerName, { color: layerColor }]}>{layerName}</Text>
+        <View style={[styles.windyBadge, { backgroundColor: layerColor + '20', borderColor: layerColor + '50' }]}>
+          <MaterialIcons name="radar" size={11} color={layerColor} />
+          <Text style={[styles.windyBadgeText, { color: layerColor }]}>Windy.com</Text>
         </View>
-      ) : null}
-
-      {/* Layer info — top left */}
-      <View
-        style={[styles.layerInfo, { backgroundColor: theme.surface + 'EE', borderColor: theme.surfaceBorder }]}
-        pointerEvents="none"
-      >
-        <View style={styles.layerInfoRow}>
-          <View style={[styles.layerActiveDot, { backgroundColor: layerColor }]} />
-          <Text style={[styles.layerInfoText, { color: theme.textPrimary }]}>{layerName}</Text>
-        </View>
-        <Text style={[styles.layerInfoSub, { color: theme.textTertiary }]}>
-          Windy.com
-        </Text>
+        <Pressable
+          onPress={onToggleFullscreen}
+          hitSlop={10}
+          style={({ pressed }) => [styles.fsBtn, { backgroundColor: layerColor + '20', opacity: pressed ? 0.7 : 1 }]}
+        >
+          <MaterialIcons
+            name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
+            size={22}
+            color={layerColor}
+          />
+        </Pressable>
       </View>
 
-      {/* Fullscreen toggle — top right */}
-      <Pressable
-        onPress={onToggleFullscreen}
-        style={({ pressed }) => [
-          styles.fullscreenBtn,
-          {
-            backgroundColor: theme.surface + 'EE',
-            borderColor: theme.surfaceBorder,
-            opacity: pressed ? 0.75 : 1,
-          },
-        ]}
-        hitSlop={8}
-      >
-        <MaterialIcons
-          name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
-          size={22}
-          color={theme.textPrimary}
-        />
-      </Pressable>
+      {/* Map area */}
+      <View style={styles.webviewContainer}>
+        {WebView && !webViewError ? (
+          <WebView
+            key={`${windyUrl}_${isFullscreen}`}
+            source={{ uri: windyUrl }}
+            style={styles.webview}
+            onLoadEnd={handleLoadEnd}
+            onError={handleError}
+            onHttpError={handleError}
+            allowsInlineMediaPlayback
+            javaScriptEnabled
+            domStorageEnabled
+            mixedContentMode="compatibility"
+            originWhitelist={['*']}
+            // Required for Android SDK 53 stability
+            setSupportMultipleWindows={false}
+            androidLayerType="hardware"
+            cacheEnabled={false}
+            thirdPartyCookiesEnabled={true}
+          />
+        ) : (
+          <MapFallback
+            windyUrl={windyUrl}
+            layerColor={layerColor}
+            layerName={layerName}
+            language={language}
+          />
+        )}
+
+        {loading && WebView && !webViewError ? (
+          <View style={[styles.loadingOverlay, { backgroundColor: theme.background + 'CC' }]}>
+            <ActivityIndicator size="large" color={layerColor} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              {language === 'mr' ? 'Windy नकाशा लोड होत आहे...' : 'Loading Windy map...'}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -141,7 +193,7 @@ export default function WeatherMap(props: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const toggle = () => setIsFullscreen((v) => !v);
+  const toggle = useCallback(() => setIsFullscreen((v) => !v), []);
 
   return (
     <>
@@ -161,10 +213,7 @@ export default function WeatherMap(props: Props) {
             styles.fullscreenModal,
             {
               backgroundColor: '#000',
-              paddingTop:
-                Platform.OS === 'android'
-                  ? StatusBar.currentHeight ?? 0
-                  : insets.top,
+              paddingTop: Platform.OS === 'android' ? 0 : insets.top,
             },
           ]}
         >
@@ -178,62 +227,78 @@ export default function WeatherMap(props: Props) {
 const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
-    position: 'relative',
+    overflow: 'hidden',
   },
-  mapContainerFullscreen: {
+  mapFull: {
     flex: 1,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  layerDot: { width: 9, height: 9, borderRadius: 5 },
+  layerName: { fontSize: 13, fontWeight: '700', flex: 1 },
+  windyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  windyBadgeText: { fontSize: 10, fontWeight: '700' },
+  fsBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webviewContainer: {
+    flex: 1,
+    position: 'relative',
   },
   webview: {
     flex: 1,
+    backgroundColor: '#0A1628',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 14,
   },
   loadingText: {
     fontSize: 14,
     fontWeight: '500',
   },
-  layerInfo: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    gap: 3,
-  },
-  layerInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  layerActiveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  layerInfoText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  layerInfoSub: {
-    fontSize: 10,
-  },
-  fullscreenBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
+  // Fallback styles
+  fallback: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 16,
+    padding: 32,
+    margin: 16,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  fullscreenModal: {
-    flex: 1,
+  fallbackTitle: { fontSize: 18, fontWeight: '700' },
+  fallbackSub: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  fallbackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
+  fallbackBtnText: { fontSize: 15, fontWeight: '700', color: '#000' },
+  fullscreenModal: { flex: 1 },
 });

@@ -7,16 +7,17 @@
     "icon": "./assets/images/logo.png",
     "scheme": "onspaceapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0A1628"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": false,
+      "package": "com.awmd.weather"
     },
     "web": {
       "bundler": "metro",
@@ -28,13 +29,26 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.png",
+          "image": "./assets/images/awmd-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0A1628"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow AWMD Weather to use your location for accurate weather data."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/awmd-logo.png",
+          "color": "#FFB300"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

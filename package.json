@@ -39,7 +39,7 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.3",
     "react-native-calendars": "^1.1312.1",
-    "react-native-dynamic": "^1.0.0",
+    
     "react-native-gesture-handler": "~2.24.0",
     "react-native-paper": "^5.12.5",
     "react-native-reanimated": "3.17.4",
@@ -64,7 +64,7 @@
     "expo-sensors": "14.1.4",
     "react-native-markdown-display": "^7.0.2",
     "@stripe/stripe-react-native": "0.45.0",
-    "expo-modules-autolinking": "*",
+  
     "react-native-url-polyfill": "^2.0.0",
     "@privacyresearch/libsignal-protocol-typescript": "0.0.16",
     "@react-native-picker/picker": "2.11.0",

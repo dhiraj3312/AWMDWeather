@@ -4,8 +4,8 @@
     "slug": "awmd weather",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
-    "scheme": "onspaceapp",
+    "icon": ".assets/images/file_000000004ee471fa8a666891e427a7a8 (1).png",
+    "scheme": "awmdweather",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": ".assets/images/file_000000004ee471fa8a666891e427a7a8 (1).png",
         "backgroundColor": "#0A1628"
       },
       "edgeToEdgeEnabled": false,

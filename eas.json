@@ -22,7 +22,7 @@
     },
     "production": {
       "android": {
-        "buildType": "aab"
+        "buildType": "apk"
       },
       "env": {
         "EXPO_PUBLIC_ACCUWEATHER_API_KEY": "zpka_ea468e5f4a484eb4bbfb9468e78e7e44_2b4e74fb"

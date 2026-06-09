@@ -1,6 +1,6 @@
-// Web fallback — react-native-maps is not supported on web
+// Web — uses iframe to embed Windy.com radar/weather maps
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,16 +9,33 @@ import { CONFIG } from '@/constants/config';
 
 interface Props {
   activeLayer: string;
-  activeLayerConfig?: { label: string; labelMr: string } | undefined;
-  tileUrl: string;
+  activeLayerConfig?: { label: string; labelMr: string; windyOverlay: string; windyProduct: string } | undefined;
   mapRegion: { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number };
   activeLocation: { lat: number; lon: number; name: string } | null;
   getLayerColor: (id: string) => string;
 }
 
+function buildWindyUrl(
+  lat: number,
+  lon: number,
+  overlay: string,
+  product: string,
+  zoom = 7
+): string {
+  return (
+    `${CONFIG.WINDY_EMBED_BASE}` +
+    `?lat=${lat}&lon=${lon}&zoom=${zoom}` +
+    `&level=surface&overlay=${overlay}&product=${product}` +
+    `&menu=&message=true&marker=true&calendar=now` +
+    `&pressure=&type=map&location=coordinates&detail=` +
+    `&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`
+  );
+}
+
 function MapContent({
   activeLayer,
   activeLayerConfig,
+  mapRegion,
   activeLocation,
   getLayerColor,
   isFullscreen,
@@ -27,63 +44,53 @@ function MapContent({
   const { theme } = useTheme();
   const { language } = useLanguage();
 
-  const lat = activeLocation?.lat ?? CONFIG.DEFAULT_LOCATION.lat;
-  const lon = activeLocation?.lon ?? CONFIG.DEFAULT_LOCATION.lon;
+  const lat = activeLocation?.lat ?? mapRegion.latitude;
+  const lon = activeLocation?.lon ?? mapRegion.longitude;
+  const overlay = activeLayerConfig?.windyOverlay ?? 'rain';
+  const product = activeLayerConfig?.windyProduct ?? 'ecmwf';
+  const windyUrl = buildWindyUrl(lat, lon, overlay, product, isFullscreen ? 8 : 7);
   const layerColor = getLayerColor(activeLayer);
   const layerName = language === 'mr' ? activeLayerConfig?.labelMr : activeLayerConfig?.label;
 
-  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 1},${lat - 1},${lon + 1},${lat + 1}&layer=mapnik&marker=${lat},${lon}`;
-
   return (
     <View style={[styles.container, isFullscreen && styles.containerFullscreen]}>
-      {/* Active Layer Badge */}
-      <View style={[styles.layerBadge, { backgroundColor: layerColor + '20', borderColor: layerColor }]}>
-        <View style={[styles.activeDot, { backgroundColor: layerColor }]} />
-        <Text style={[styles.layerBadgeText, { color: layerColor }]}>
-          {layerName} {language === 'mr' ? 'नकाशा' : 'Map'}
-        </Text>
-        {/* Fullscreen toggle */}
+      {/* Layer badge + fullscreen toggle */}
+      <View style={[styles.topBar, { backgroundColor: theme.surface, borderColor: theme.surfaceBorder }]}>
+        <View style={[styles.layerDot, { backgroundColor: layerColor }]} />
+        <Text style={[styles.layerName, { color: layerColor }]}>{layerName}</Text>
+        <View style={[styles.windyBadge, { backgroundColor: layerColor + '18', borderColor: layerColor + '50' }]}>
+          <MaterialIcons name="radar" size={11} color={layerColor} />
+          <Text style={[styles.windyBadgeText, { color: layerColor }]}>Windy.com</Text>
+        </View>
         <Pressable
           onPress={onToggleFullscreen}
           hitSlop={8}
-          style={({ pressed }) => [styles.fsBtn, { backgroundColor: layerColor + '30', opacity: pressed ? 0.7 : 1 }]}
+          style={({ pressed }) => [
+            styles.fsBtn,
+            { backgroundColor: layerColor + '20', opacity: pressed ? 0.7 : 1 },
+          ]}
         >
-          <MaterialIcons name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18} color={layerColor} />
+          <MaterialIcons
+            name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
+            size={20}
+            color={layerColor}
+          />
         </Pressable>
       </View>
 
-      {/* Map frame */}
-      <View style={[styles.mapFrame, { borderColor: theme.surfaceBorder }, isFullscreen && styles.mapFrameFullscreen]}>
+      {/* Windy iframe */}
+      <View style={[styles.iframeWrapper, isFullscreen && styles.iframeWrapperFullscreen]}>
         {/*
-          // @ts-ignore — iframe is valid in web environment
+          // @ts-ignore — iframe valid in web
         */}
         <iframe
-          src={osmUrl}
+          src={windyUrl}
           style={{ width: '100%', height: '100%', border: 'none' }}
-          title="AWMD Weather Map"
-          sandbox="allow-scripts allow-same-origin"
+          title={`AWMD ${layerName} Map`}
+          allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-popups"
         />
-
-        {/* Overlay info */}
-        <View style={[styles.overlayInfo, { backgroundColor: theme.surface + 'D0', borderColor: theme.surfaceBorder }]}>
-          <MaterialIcons name="location-on" size={13} color={theme.accentBlue} />
-          <Text style={[styles.overlayText, { color: theme.textSecondary }]}>
-            {activeLocation?.name ?? CONFIG.DEFAULT_LOCATION.name}
-          </Text>
-        </View>
       </View>
-
-      {/* Weather layer note — hide in fullscreen to save space */}
-      {!isFullscreen ? (
-        <View style={[styles.noteCard, { backgroundColor: theme.surfaceElevated, borderColor: theme.surfaceBorder }]}>
-          <MaterialIcons name="info-outline" size={16} color={theme.primary} />
-          <Text style={[styles.noteText, { color: theme.textSecondary }]}>
-            {language === 'mr'
-              ? `${layerName} थर Android/iOS अॅपमध्ये OpenWeatherMap द्वारे उपलब्ध. वेब वर OpenStreetMap बेस नकाशा दाखवला आहे.`
-              : `${layerName} layer powered by OpenWeatherMap on Android/iOS. Showing OpenStreetMap base on web.`}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -92,7 +99,6 @@ export default function WeatherMap(props: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-
   const toggle = () => setIsFullscreen((v) => !v);
 
   return (
@@ -107,7 +113,12 @@ export default function WeatherMap(props: Props) {
         transparent={false}
         onRequestClose={toggle}
       >
-        <View style={[styles.fullscreenModal, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <View
+          style={[
+            styles.fullscreenModal,
+            { backgroundColor: theme.background, paddingTop: insets.top },
+          ]}
+        >
           <MapContent {...props} isFullscreen={true} onToggleFullscreen={toggle} />
         </View>
       </Modal>
@@ -116,82 +127,41 @@ export default function WeatherMap(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  containerFullscreen: {
-    flex: 1,
-  },
-  layerBadge: {
+  container: { flex: 1 },
+  containerFullscreen: { flex: 1 },
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    alignSelf: 'flex-start',
-    margin: 12,
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  layerBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    flex: 1,
-  },
-  fsBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapFrame: {
-    flex: 1,
-    marginHorizontal: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    position: 'relative',
-  },
-  mapFrameFullscreen: {
-    marginHorizontal: 0,
-    borderRadius: 0,
-  },
-  overlayInfo: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+  layerDot: { width: 9, height: 9, borderRadius: 5 },
+  layerName: { fontSize: 13, fontWeight: '700', flex: 1 },
+  windyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    padding: 7,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 8,
     borderWidth: 1,
   },
-  overlayText: {
-    fontSize: 12,
-    fontWeight: '500',
+  windyBadgeText: { fontSize: 10, fontWeight: '700' },
+  fsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  noteCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    margin: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  noteText: {
+  iframeWrapper: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
+    overflow: 'hidden' as any,
   },
-  fullscreenModal: {
+  iframeWrapperFullscreen: {
     flex: 1,
   },
+  fullscreenModal: { flex: 1 },
 });

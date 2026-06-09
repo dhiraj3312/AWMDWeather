@@ -1,20 +1,22 @@
 // AWMD Weather - Configuration
 export const CONFIG = {
+  // AccuWeather API — used for ALL weather data
   API_KEY: 'zpka_ea468e5f4a484eb4bbfb9468e78e7e44_2b4e74fb',
   BASE_URL: 'https://dataservice.accuweather.com',
-  MAPS_TILE_URL: 'https://maps.accuweather.com/maps/TileServer/tile.aspx',
 
-  // OpenWeatherMap — used exclusively for map tile layers
-  OWM_API_KEY: '919a4443bfbed7470cbc5d64b0b28b3f',
-  OWM_TILE_BASE: 'https://tile.openweathermap.org/map',
+  // Windy.com embed — used for all map/radar layers (no API key required)
+  WINDY_EMBED_BASE: 'https://embed.windy.com/embed2.html',
+
   REFRESH_INTERVAL: 5 * 60 * 1000, // 5 minutes in ms
+
   DEFAULT_LOCATION: {
     name: 'Alandi Mhatobachi',
     nameMarathi: 'आळंदी म्हातोबाची',
     lat: 18.6834,
     lon: 73.9009,
-    key: '',
+    key: '202396', // AccuWeather location key for Alandi/Pune area
   },
+
   ALERT_THRESHOLDS: {
     HEAVY_RAIN_PROBABILITY: 80,
     MODERATE_RAIN_PROBABILITY: 60,
@@ -25,8 +27,8 @@ export const CONFIG = {
     HIGH_UV_INDEX: 8,
     EXTREME_HEAT_C: 42,
   },
+
   LOCAL_INTELLIGENCE: {
-    // Alandi Mhatobachi local cloud movement knowledge
     PRIMARY_CLOUD_DIRECTION: 'W/NW/SW → E/ESE',
     STRONGER_DEVELOPMENT_SECTOR: 'Saswad-side (SE)',
     NOTES: [
@@ -35,15 +37,14 @@ export const CONFIG = {
       'Local observations used as supportive indicators only',
     ],
   },
-  // OWM layer IDs map to: https://tile.openweathermap.org/map/{owmLayer}/{z}/{x}/{y}.png?appid=KEY
+
+  // Windy map layers — overlay= param values
   MAP_LAYERS: [
-    { id: 'precipitation_new',  owmLayer: 'precipitation_new',  label: 'Rainfall',      labelMr: 'पर्जन्यमान' },
-    { id: 'wind_new',           owmLayer: 'wind_new',           label: 'Wind',          labelMr: 'वारा' },
-    { id: 'clouds_new',         owmLayer: 'clouds_new',         label: 'Clouds',        labelMr: 'ढग' },
-    { id: 'temp_new',           owmLayer: 'temp_new',           label: 'Temperature',   labelMr: 'तापमान' },
-    { id: 'pressure_new',       owmLayer: 'pressure_new',       label: 'Pressure',      labelMr: 'दाब' },
-    { id: 'snow',               owmLayer: 'snow',               label: 'Snow',          labelMr: 'हिमवर्षाव' },
+    { id: 'radar',       windyOverlay: 'radar',    windyProduct: 'radar',  label: 'Radar',        labelMr: 'रडार' },
+    { id: 'rain',        windyOverlay: 'rain',     windyProduct: 'ecmwf',  label: 'Rainfall',     labelMr: 'पर्जन्यमान' },
+    { id: 'wind',        windyOverlay: 'wind',     windyProduct: 'ecmwf',  label: 'Wind',         labelMr: 'वारा' },
+    { id: 'clouds',      windyOverlay: 'clouds',   windyProduct: 'ecmwf',  label: 'Clouds',       labelMr: 'ढग' },
+    { id: 'temp',        windyOverlay: 'temp',     windyProduct: 'ecmwf',  label: 'Temperature',  labelMr: 'तापमान' },
+    { id: 'lightning',   windyOverlay: 'lightning',windyProduct: 'ecmwf',  label: 'Lightning',    labelMr: 'विजा' },
   ],
 };
-
-export type MapLayerId = 'sat' | 'satrad' | 'stormsurf_rainrate' | 'wind' | 'clouds' | 'lightning';

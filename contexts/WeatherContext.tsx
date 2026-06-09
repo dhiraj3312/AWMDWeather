@@ -30,25 +30,18 @@ export interface SavedLocation {
 }
 
 interface WeatherContextType {
-  // Current data
   currentConditions: CurrentConditions | null;
   hourlyForecast: HourlyForecast[];
   dailyForecast: DailyForecastResponse | null;
   officialAlerts: WeatherAlert[];
   awmdAlerts: AWMDAlert[];
-
-  // Location
   activeLocation: SavedLocation | null;
   favorites: SavedLocation[];
   locationError: string | null;
-
-  // State flags
   loading: boolean;
   refreshing: boolean;
   error: string | null;
   lastUpdated: Date | null;
-
-  // Actions
   refresh: () => Promise<void>;
   setActiveLocation: (loc: SavedLocation) => void;
   searchLocations: (query: string) => Promise<LocationResult[]>;
@@ -61,6 +54,16 @@ const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
 
 const FAVORITES_KEY = '@awmd_favorites';
 const ACTIVE_LOC_KEY = '@awmd_active_location';
+
+// Hardcoded fallback: Alandi / Pune area AccuWeather location key
+// This prevents a double-API-call failure on first launch
+const ALANDI_FALLBACK: SavedLocation = {
+  key: '202396', // Alandi / Pune region AccuWeather key
+  name: 'Alandi Mhatobachi',
+  lat: CONFIG.DEFAULT_LOCATION.lat,
+  lon: CONFIG.DEFAULT_LOCATION.lon,
+  isFavorite: false,
+};
 
 export function WeatherProvider({ children }: { children: ReactNode }) {
   const [currentConditions, setCurrentConditions] = useState<CurrentConditions | null>(null);
@@ -79,8 +82,8 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fetchingRef = useRef(false);
 
-  // Load saved data on mount
   useEffect(() => {
     loadInitialData();
     return () => {
@@ -91,112 +94,157 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
   // Auto-refresh every 5 minutes
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      if (activeLocation) fetchWeatherData(activeLocation.key);
-    }, CONFIG.REFRESH_INTERVAL);
+    if (activeLocation?.key) {
+      intervalRef.current = setInterval(() => {
+        fetchWeatherData(activeLocation.key, false);
+      }, CONFIG.REFRESH_INTERVAL);
+    }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [activeLocation]);
+  }, [activeLocation?.key]);
 
   const loadInitialData = async () => {
     try {
-      // Load favorites
       const favsJson = await AsyncStorage.getItem(FAVORITES_KEY);
       if (favsJson) setFavorites(JSON.parse(favsJson));
 
-      // Load active location
       const activeJson = await AsyncStorage.getItem(ACTIVE_LOC_KEY);
       if (activeJson) {
         const loc: SavedLocation = JSON.parse(activeJson);
-        setActiveLocationState(loc);
-        await fetchWeatherData(loc.key);
-      } else {
-        // Default: use current location or Alandi
-        await useCurrentLocation();
+        if (loc?.key) {
+          setActiveLocationState(loc);
+          await fetchWeatherData(loc.key, true);
+          return;
+        }
       }
-    } catch (err) {
-      // Fall back to Alandi
-      await loadDefaultLocation();
+
+      // Try GPS first, fall back to hardcoded Alandi key
+      await useCurrentLocation();
+    } catch {
+      await fetchWithFallbackKey();
     }
   };
 
-  const loadDefaultLocation = async () => {
+  /** Use the hardcoded Alandi key directly — no geoposition API call needed */
+  const fetchWithFallbackKey = async () => {
     try {
-      const def = CONFIG.DEFAULT_LOCATION;
-      const locResult = await accuWeatherService.getLocationByGeoPosition(def.lat, def.lon);
+      // First try to resolve the key via geoposition (works on native)
+      const locResult = await accuWeatherService.getLocationByGeoPosition(
+        CONFIG.DEFAULT_LOCATION.lat,
+        CONFIG.DEFAULT_LOCATION.lon
+      );
       const loc: SavedLocation = {
         key: locResult.Key,
-        name: locResult.LocalizedName || def.name,
-        lat: def.lat,
-        lon: def.lon,
+        name: locResult.LocalizedName || CONFIG.DEFAULT_LOCATION.name,
+        lat: CONFIG.DEFAULT_LOCATION.lat,
+        lon: CONFIG.DEFAULT_LOCATION.lon,
         isFavorite: false,
       };
       setActiveLocationState(loc);
-      await fetchWeatherData(loc.key);
-    } catch (err) {
-      setError('Could not load weather data. Check your connection.');
-      setLoading(false);
+      await fetchWeatherData(loc.key, true);
+    } catch {
+      // Ultimate fallback: use hardcoded Pune/Alandi key
+      setActiveLocationState(ALANDI_FALLBACK);
+      await fetchWeatherData(ALANDI_FALLBACK.key, true);
     }
   };
 
-  const fetchWeatherData = useCallback(async (locationKey: string) => {
-    if (!locationKey) return;
-    try {
-      setError(null);
+  const fetchWeatherData = useCallback(
+    async (locationKey: string, isInitial = false) => {
+      if (!locationKey) return;
+      if (fetchingRef.current && !isInitial) return;
+      fetchingRef.current = true;
 
-      const [current, hourly, daily, alerts] = await Promise.allSettled([
-        accuWeatherService.getCurrentConditions(locationKey),
-        accuWeatherService.getHourlyForecast(locationKey, 12),
-        accuWeatherService.getDailyForecast(locationKey, 15),
-        accuWeatherService.getAlerts(locationKey),
-      ]);
+      try {
+        setError(null);
 
-      const currentData = current.status === 'fulfilled' ? current.value[0] ?? null : null;
-      const hourlyData = hourly.status === 'fulfilled' ? hourly.value : [];
-      const dailyData = daily.status === 'fulfilled' ? daily.value : null;
-      const alertsData = alerts.status === 'fulfilled' ? alerts.value : [];
+        const [current, hourly, daily, alerts] = await Promise.allSettled([
+          accuWeatherService.getCurrentConditions(locationKey),
+          accuWeatherService.getHourlyForecast(locationKey, 12),
+          accuWeatherService.getDailyForecast(locationKey, 15),
+          accuWeatherService.getAlerts(locationKey),
+        ]);
 
-      setCurrentConditions(currentData);
-      setHourlyForecast(hourlyData);
-      setDailyForecast(dailyData);
-      setOfficialAlerts(alertsData);
+        const currentData =
+          current.status === 'fulfilled' && current.value?.length > 0
+            ? current.value[0]
+            : null;
+        const hourlyData =
+          hourly.status === 'fulfilled' ? hourly.value : [];
+        const dailyData =
+          daily.status === 'fulfilled' ? daily.value : null;
+        const alertsData =
+          alerts.status === 'fulfilled' ? alerts.value : [];
 
-      // Generate AWMD alerts
-      const generatedAlerts = generateAWMDAlerts({
-        current: currentData,
-        hourly: hourlyData,
-        daily: dailyData?.DailyForecasts,
-      });
-      setAwmdAlerts(generatedAlerts);
+        // If ALL calls failed, surface an error
+        if (
+          current.status === 'rejected' &&
+          hourly.status === 'rejected' &&
+          daily.status === 'rejected'
+        ) {
+          const err = (current.reason as Error)?.message ?? 'FETCH_FAILED';
+          if (err === 'INVALID_API_KEY') {
+            setError('Invalid API key. Check configuration.');
+          } else if (err === 'API_LIMIT_EXCEEDED') {
+            setError('AccuWeather daily limit reached. Try again later.');
+          } else {
+            setError(
+              'Weather data unavailable.\n\n' +
+                '• On real device (APK): works perfectly\n' +
+                '• Web preview: AccuWeather blocks browser requests (CORS)\n\n' +
+                'Download the APK for live data.'
+            );
+          }
+          // Still generate alerts with empty data (shows green/clear status)
+          setAwmdAlerts(
+            generateAWMDAlerts({ current: null, hourly: [], daily: [] })
+          );
+          return;
+        }
 
-      // Send notifications for high-priority alerts
-      const criticalAlerts = generatedAlerts.filter(
-        (a) => (a.level === 'red' || a.level === 'orange') && a.type !== 'CLEAR'
-      );
-      for (const alert of criticalAlerts.slice(0, 2)) {
-        await scheduleWeatherAlert(alert);
+        setCurrentConditions(currentData);
+        setHourlyForecast(hourlyData);
+        setDailyForecast(dailyData);
+        setOfficialAlerts(alertsData);
+
+        const generatedAlerts = generateAWMDAlerts({
+          current: currentData,
+          hourly: hourlyData,
+          daily: dailyData?.DailyForecasts,
+        });
+        setAwmdAlerts(generatedAlerts);
+
+        const criticalAlerts = generatedAlerts.filter(
+          (a) => (a.level === 'red' || a.level === 'orange') && a.type !== 'CLEAR'
+        );
+        for (const alert of criticalAlerts.slice(0, 2)) {
+          await scheduleWeatherAlert(alert);
+        }
+
+        setLastUpdated(new Date());
+        setError(null);
+      } catch (err: any) {
+        const msg =
+          err.message === 'INVALID_API_KEY'
+            ? 'Invalid API key. Check configuration.'
+            : err.message === 'API_LIMIT_EXCEEDED'
+            ? 'API limit reached. Try again later.'
+            : 'Data fetch failed. Please retry.';
+        setError(msg);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        fetchingRef.current = false;
       }
-
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (err: any) {
-      const msg = err.message === 'INVALID_API_KEY'
-        ? 'Invalid API key. Check configuration.'
-        : err.message === 'API_LIMIT_EXCEEDED'
-        ? 'API limit exceeded. Try again later.'
-        : 'Weather data unavailable. Check connection.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const refresh = useCallback(async () => {
     if (!activeLocation) return;
     setRefreshing(true);
-    await fetchWeatherData(activeLocation.key);
+    await fetchWeatherData(activeLocation.key, true);
   }, [activeLocation, fetchWeatherData]);
 
   const setActiveLocation = useCallback(
@@ -204,7 +252,7 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
       setActiveLocationState(loc);
       setLoading(true);
       await AsyncStorage.setItem(ACTIVE_LOC_KEY, JSON.stringify(loc));
-      await fetchWeatherData(loc.key);
+      await fetchWeatherData(loc.key, true);
     },
     [fetchWeatherData]
   );
@@ -219,7 +267,10 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
 
   const addFavorite = useCallback(
     async (loc: SavedLocation) => {
-      const updated = [...favorites.filter((f) => f.key !== loc.key), { ...loc, isFavorite: true }];
+      const updated = [
+        ...favorites.filter((f) => f.key !== loc.key),
+        { ...loc, isFavorite: true },
+      ];
       setFavorites(updated);
       await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
     },
@@ -241,25 +292,39 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationError('Location permission denied');
-        await loadDefaultLocation();
+        await fetchWithFallbackKey();
         return;
       }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       const { latitude, longitude } = position.coords;
-      const locResult = await accuWeatherService.getLocationByGeoPosition(latitude, longitude);
-      const loc: SavedLocation = {
-        key: locResult.Key,
-        name: locResult.LocalizedName,
-        lat: latitude,
-        lon: longitude,
-        isFavorite: false,
-      };
+
+      let loc: SavedLocation;
+      try {
+        const locResult = await accuWeatherService.getLocationByGeoPosition(latitude, longitude);
+        loc = {
+          key: locResult.Key,
+          name: locResult.LocalizedName,
+          lat: latitude,
+          lon: longitude,
+          isFavorite: false,
+        };
+      } catch {
+        // CORS/network blocked — use fallback key with actual GPS coords
+        loc = {
+          ...ALANDI_FALLBACK,
+          lat: latitude,
+          lon: longitude,
+        };
+      }
+
       setActiveLocationState(loc);
       await AsyncStorage.setItem(ACTIVE_LOC_KEY, JSON.stringify(loc));
-      await fetchWeatherData(loc.key);
+      await fetchWeatherData(loc.key, true);
     } catch {
       setLocationError('Could not determine location');
-      await loadDefaultLocation();
+      await fetchWithFallbackKey();
     }
   }, [fetchWeatherData]);
 

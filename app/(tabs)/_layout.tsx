@@ -26,19 +26,21 @@ export default function TabLayout() {
     (a) => (a.level === 'red' || a.level === 'orange') && a.type !== 'CLEAR'
   ).length;
 
+  const tabBarHeight = Platform.select({
+    ios: insets.bottom + 58,
+    android: insets.bottom + 58,
+    default: 66,
+  });
+
   const tabBarStyle = {
-    height: Platform.select({
-      ios: insets.bottom + 60,
-      android: insets.bottom + 60,
-      default: 68,
-    }),
+    height: tabBarHeight,
     paddingTop: 8,
     paddingBottom: Platform.select({
       ios: insets.bottom + 6,
       android: insets.bottom + 6,
       default: 8,
     }),
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     backgroundColor: theme.surface,
     borderTopWidth: 1,
     borderTopColor: theme.surfaceBorder,
@@ -52,9 +54,9 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textTertiary,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
-          letterSpacing: 0.3,
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -81,7 +83,7 @@ export default function TabLayout() {
         options={{
           title: t.maps,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="map" size={size} color={color} />
+            <MaterialIcons name="satellite-alt" size={size} color={color} />
           ),
         }}
       />
@@ -89,11 +91,20 @@ export default function TabLayout() {
         name="alerts"
         options={{
           title: t.alerts,
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size }) => (
             <View>
               <MaterialIcons name="notifications-active" size={size} color={color} />
               <AlertBadge count={criticalAlerts} />
             </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t.settings,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="settings" size={size} color={color} />
           ),
         }}
       />

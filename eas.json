@@ -1,32 +1,18 @@
 {
   "cli": {
-    "version": ">= 16.0.0",
-    "appVersionSource": "local"
+    "version": ">= 20.1.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+      "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_ACCUWEATHER_API_KEY": "zpka_ea468e5f4a484eb4bbfb9468e78e7e44_2b4e74fb"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "android": {
-        "buildType": "aab"
-      },
-      "env": {
-        "EXPO_PUBLIC_ACCUWEATHER_API_KEY": "zpka_ea468e5f4a484eb4bbfb9468e78e7e44_2b4e74fb"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

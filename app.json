@@ -17,7 +17,11 @@
         "backgroundColor": "#0A1628"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.awmd.weather"
+      "package": "com.awmd.weather",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -52,6 +56,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "265c6178-7cb8-4254-ad9e-9d6309c6b8cb"
+      }
     }
   }
 }

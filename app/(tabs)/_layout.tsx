@@ -65,7 +65,7 @@ export default function TabLayout() {
         options={{
           title: t.home,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="weather-partly-cloudy" size={size} color={color} />
+            <MaterialCommunityIcons name="home-variant" size={size} color={color} />
           ),
         }}
       />
@@ -74,7 +74,7 @@ export default function TabLayout() {
         options={{
           title: t.forecast,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="calendar-today" size={size} color={color} />
+            <MaterialCommunityIcons name="calendar-month" size={size} color={color} />
           ),
         }}
       />
@@ -83,7 +83,7 @@ export default function TabLayout() {
         options={{
           title: t.maps,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="satellite-alt" size={size} color={color} />
+            <MaterialCommunityIcons name="earth" size={size} color={color} />
           ),
         }}
       />
@@ -104,7 +104,7 @@ export default function TabLayout() {
         options={{
           title: t.settings,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="settings" size={size} color={color} />
+            <MaterialCommunityIcons name="cog" size={size} color={color} />
           ),
         }}
       />

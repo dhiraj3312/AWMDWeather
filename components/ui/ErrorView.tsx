@@ -11,27 +11,30 @@ interface Props {
 
 export default function ErrorView({ message, onRetry }: Props) {
   const { theme } = useTheme();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.iconCircle, { backgroundColor: theme.surfaceElevated, borderColor: theme.alertRed + '40' }]}>
-        <MaterialIcons name="cloud-off" size={40} color={theme.alertOrange} />
+    <View style={styles.container}>
+      <View style={[styles.iconCircle, { backgroundColor: theme.alertRed + '20' }]}>
+        <MaterialIcons name="cloud-off" size={44} color={theme.alertRed} />
       </View>
-      <Text style={[styles.title, { color: theme.textPrimary }]}>{t.error}</Text>
-      <Text style={[styles.message, { color: theme.textSecondary }]}>
-        {message || t.networkError}
+      <Text style={[styles.title, { color: theme.textPrimary }]}>
+        {language === 'mr' ? 'डेटा उपलब्ध नाही' : 'Data Unavailable'}
       </Text>
+      {message ? (
+        <Text style={[styles.message, { color: theme.textTertiary }]}>
+          {message}
+        </Text>
+      ) : null}
       {onRetry ? (
         <Pressable
-          style={({ pressed }) => [
-            styles.retryButton,
-            { backgroundColor: theme.primary, opacity: pressed ? 0.8 : 1 },
-          ]}
           onPress={onRetry}
+          style={({ pressed }) => [styles.retryBtn, { backgroundColor: theme.primary, opacity: pressed ? 0.8 : 1 }]}
         >
-          <MaterialIcons name="refresh" size={18} color="#000" />
-          <Text style={styles.retryText}>{t.retry}</Text>
+          <MaterialIcons name="refresh" size={16} color="#000" />
+          <Text style={styles.retryText}>
+            {language === 'mr' ? 'पुन्हा प्रयत्न करा' : 'Retry'}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -44,7 +47,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    gap: 16,
+    gap: 14,
   },
   iconCircle: {
     width: 88,
@@ -52,30 +55,30 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    marginBottom: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
+    textAlign: 'center',
   },
   message: {
-    fontSize: 15,
+    fontSize: 13,
     textAlign: 'center',
     lineHeight: 22,
+    maxWidth: 300,
   },
-  retryButton: {
+  retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+    borderRadius: 24,
     marginTop: 8,
   },
   retryText: {
-    color: '#000',
-    fontWeight: '700',
     fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
   },
 });

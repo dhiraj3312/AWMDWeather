@@ -6,10 +6,10 @@ import {
   ScrollView,
   Pressable,
   Switch,
-  Platform,
   Linking,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -17,11 +17,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWeather } from '@/contexts/WeatherContext';
 import { cancelAllNotifications } from '@/services/notificationService';
 
-// ─── Setting Row ──────────────────────────────────────────────────────────────
 function SettingRow({
-  icon, iconColor, title, subtitle, rightElement, onPress, borderBottom = true,
+  icon, iconLib = 'material', iconColor, title, subtitle, rightElement, onPress, borderBottom = true,
 }: {
-  icon: string; iconColor: string; title: string; subtitle?: string;
+  icon: string; iconLib?: 'material' | 'community'; iconColor: string; title: string; subtitle?: string;
   rightElement?: React.ReactNode; onPress?: () => void; borderBottom?: boolean;
 }) {
   const { theme } = useTheme();
@@ -36,25 +35,24 @@ function SettingRow({
       ]}
     >
       <View style={[styles.settingIconCircle, { backgroundColor: iconColor + '20' }]}>
-        <MaterialIcons name={icon as any} size={20} color={iconColor} />
+        {iconLib === 'community'
+          ? <MaterialCommunityIcons name={icon as any} size={19} color={iconColor} />
+          : <MaterialIcons name={icon as any} size={19} color={iconColor} />}
       </View>
       <View style={styles.settingTextCol}>
         <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>{title}</Text>
         {subtitle ? <Text style={[styles.settingSubtitle, { color: theme.textTertiary }]}>{subtitle}</Text> : null}
       </View>
-      {rightElement ? rightElement : onPress ? (
-        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-      ) : null}
+      {rightElement ?? (onPress ? <MaterialIcons name="chevron-right" size={18} color={theme.textTertiary} /> : null)}
     </Pressable>
   );
 }
 
-// ─── Section Card ─────────────────────────────────────────────────────────────
 function SettingSection({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme } = useTheme();
   return (
     <View style={styles.sectionBlock}>
-      <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>{title}</Text>
+      <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>{title.toUpperCase()}</Text>
       <View style={[styles.sectionCard, { backgroundColor: theme.surfaceElevated, borderColor: theme.surfaceBorder }]}>
         {children}
       </View>
@@ -62,7 +60,6 @@ function SettingSection({ title, children }: { title: string; children: React.Re
   );
 }
 
-// ─── Language Picker ─────────────────────────────────────────────────────────
 function LanguagePicker() {
   const { theme } = useTheme();
   const { language, setLanguage } = useLanguage();
@@ -93,17 +90,21 @@ function LanguagePicker() {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const { t, language } = useLanguage();
   const { refresh, lastUpdated } = useWeather();
   const insets = useSafeAreaInsets();
-  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [notifRain, setNotifRain] = useState(true);
+  const [notifThunder, setNotifThunder] = useState(true);
+  const [notifDaily, setNotifDaily] = useState(true);
+  const isMr = language === 'mr';
 
-  const handleNotifToggle = async (value: boolean) => {
-    setNotifEnabled(value);
-    if (!value) {
+  const handleNotifToggle = async (type: 'rain' | 'thunder' | 'daily', value: boolean) => {
+    if (type === 'rain') setNotifRain(value);
+    if (type === 'thunder') setNotifThunder(value);
+    if (type === 'daily') setNotifDaily(value);
+    if (!value && !notifRain && !notifThunder && !notifDaily) {
       await cancelAllNotifications();
     }
   };
@@ -111,56 +112,62 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={[styles.header, {
-        backgroundColor: theme.surface,
-        borderBottomColor: theme.surfaceBorder,
-        paddingTop: insets.top + 10,
-      }]}>
-        <View style={[styles.logoBadge, { backgroundColor: theme.primary }]}>
-          <MaterialCommunityIcons name="cog" size={16} color="#000" />
+      <LinearGradient
+        colors={[theme.surface, theme.background]}
+        style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: theme.surfaceBorder }]}
+      >
+        <View style={[styles.headerIconBg, { backgroundColor: theme.primary }]}>
+          <MaterialIcons name="settings" size={17} color="#000" />
         </View>
         <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>
-          {language === 'mr' ? 'सेटिंग्ज' : 'Settings'}
+          {isMr ? 'सेटिंग्ज' : 'Settings'}
         </Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Banner */}
-        <View style={[styles.profileBanner, { backgroundColor: theme.surfaceElevated, borderColor: theme.primary + '40' }]}>
-          <Image
-            source={require('@/assets/images/awmd-logo.png')}
-            style={styles.profileLogo}
-            contentFit="contain"
-          />
+        <LinearGradient
+          colors={[theme.surfaceElevated, theme.surface]}
+          style={[styles.profileBanner, { borderColor: theme.primary + '40' }]}
+        >
+          <View style={[styles.logoCircle, { backgroundColor: theme.primary + '20', borderColor: theme.primary + '40' }]}>
+            <Image
+              source={require('@/assets/images/awmd-logo.png')}
+              style={styles.profileLogo}
+              contentFit="contain"
+            />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.profileTitle, { color: theme.primary }]}>AWMD Weather</Text>
             <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]}>
-              {language === 'mr' ? 'आळंदी हवामान व मौसमविभाग' : 'Alandi Weather & Meteorological Dept.'}
+              {isMr ? 'आळंदी हवामान व मौसमविभाग' : 'Alandi Weather & Meteorological Dept.'}
             </Text>
             {lastUpdated ? (
-              <Text style={[styles.profileUpdated, { color: theme.textTertiary }]}>
-                {language === 'mr' ? 'शेवटचे अद्यतन: ' : 'Last updated: '}
-                {lastUpdated.toLocaleTimeString(language === 'mr' ? 'mr-IN' : 'en-IN', { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+              <View style={styles.updatedRow}>
+                <MaterialIcons name="update" size={11} color={theme.accentGreen} />
+                <Text style={[styles.profileUpdated, { color: theme.accentGreen }]}>
+                  {lastUpdated.toLocaleTimeString(isMr ? 'mr-IN' : 'en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
             ) : null}
           </View>
-        </View>
+          <View style={[styles.versionBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+            <Text style={[styles.versionText, { color: theme.primary }]}>v1.0</Text>
+          </View>
+        </LinearGradient>
 
         {/* ── Language ── */}
-        <SettingSection title={language === 'mr' ? 'भाषा' : 'Language'}>
+        <SettingSection title={isMr ? 'भाषा' : 'Language'}>
           <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
             <View style={[styles.settingIconCircle, { backgroundColor: theme.accentBlue + '20' }]}>
-              <MaterialIcons name="language" size={20} color={theme.accentBlue} />
+              <MaterialIcons name="language" size={19} color={theme.accentBlue} />
             </View>
             <View style={styles.settingTextCol}>
               <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>
-                {language === 'mr' ? 'अॅप भाषा' : 'App Language'}
-              </Text>
-              <Text style={[styles.settingSubtitle, { color: theme.textTertiary }]}>
-                {language === 'mr' ? 'मराठी / English' : 'English / Marathi'}
+                {isMr ? 'अॅप भाषा' : 'App Language'}
               </Text>
             </View>
             <LanguagePicker />
@@ -168,12 +175,12 @@ export default function SettingsScreen() {
         </SettingSection>
 
         {/* ── Appearance ── */}
-        <SettingSection title={language === 'mr' ? 'देखावा' : 'Appearance'}>
+        <SettingSection title={isMr ? 'देखावा' : 'Appearance'}>
           <SettingRow
             icon={isDark ? 'light-mode' : 'dark-mode'}
             iconColor={isDark ? '#FFD700' : '#546E7A'}
-            title={isDark ? (language === 'mr' ? 'गडद मोड चालू' : 'Dark Mode On') : (language === 'mr' ? 'प्रकाश मोड चालू' : 'Light Mode On')}
-            subtitle={language === 'mr' ? 'थीम बदलण्यासाठी टॉगल करा' : 'Toggle to switch theme'}
+            title={isDark ? (isMr ? 'गडद मोड चालू' : 'Dark Mode On') : (isMr ? 'प्रकाश मोड चालू' : 'Light Mode On')}
+            subtitle={isMr ? 'थीम बदलण्यासाठी टॉगल करा' : 'Toggle to switch theme'}
             borderBottom={false}
             rightElement={
               <Switch
@@ -187,25 +194,27 @@ export default function SettingsScreen() {
         </SettingSection>
 
         {/* ── Notifications ── */}
-        <SettingSection title={language === 'mr' ? 'सूचना' : 'Notifications'}>
+        <SettingSection title={isMr ? 'सूचना' : 'Notifications'}>
           <SettingRow
-            icon="notifications-active"
+            icon="weather-pouring"
+            iconLib="community"
             iconColor={theme.alertRed}
-            title={language === 'mr' ? 'जोरदार पाऊस इशारा' : 'Heavy Rain Alert'}
-            subtitle={language === 'mr' ? 'जोरदार पावसाची सूचना' : 'Get notified about heavy rainfall'}
+            title={isMr ? 'जोरदार पाऊस इशारा' : 'Heavy Rain Alert'}
+            subtitle={isMr ? 'जोरदार पावसाची सूचना' : 'Notify on heavy rainfall'}
             rightElement={
-              <Switch value={notifEnabled} onValueChange={handleNotifToggle}
+              <Switch value={notifRain} onValueChange={(v) => handleNotifToggle('rain', v)}
                 trackColor={{ false: theme.surfaceBorder, true: theme.alertRed }}
                 thumbColor="#fff" />
             }
           />
           <SettingRow
-            icon="thunderstorm"
+            icon="weather-lightning"
+            iconLib="community"
             iconColor={theme.alertOrange}
-            title={language === 'mr' ? 'वादळाचा इशारा' : 'Thunderstorm Alert'}
-            subtitle={language === 'mr' ? 'वादळ आढळल्यावर सूचना' : 'Notification on thunderstorm detection'}
+            title={isMr ? 'वादळाचा इशारा' : 'Thunderstorm Alert'}
+            subtitle={isMr ? 'वादळ आढळल्यावर सूचना' : 'Notify on thunderstorm detection'}
             rightElement={
-              <Switch value={notifEnabled} onValueChange={handleNotifToggle}
+              <Switch value={notifThunder} onValueChange={(v) => handleNotifToggle('thunder', v)}
                 trackColor={{ false: theme.surfaceBorder, true: theme.alertOrange }}
                 thumbColor="#fff" />
             }
@@ -213,94 +222,95 @@ export default function SettingsScreen() {
           <SettingRow
             icon="wb-sunny"
             iconColor={theme.primary}
-            title={language === 'mr' ? 'दैनिक हवामान अंदाज' : 'Daily Forecast'}
-            subtitle={language === 'mr' ? 'दररोज सकाळी हवामान अंदाज' : 'Morning weather forecast every day'}
+            title={isMr ? 'दैनिक हवामान अंदाज' : 'Daily Forecast'}
+            subtitle={isMr ? 'दररोज सकाळी हवामान अंदाज' : 'Morning weather forecast daily'}
             borderBottom={false}
             rightElement={
-              <Switch value={notifEnabled} onValueChange={handleNotifToggle}
+              <Switch value={notifDaily} onValueChange={(v) => handleNotifToggle('daily', v)}
                 trackColor={{ false: theme.surfaceBorder, true: theme.primary }}
                 thumbColor="#fff" />
             }
           />
         </SettingSection>
 
-        {/* ── Data & Refresh ── */}
-        <SettingSection title={language === 'mr' ? 'डेटा' : 'Data'}>
+        {/* ── Data ── */}
+        <SettingSection title={isMr ? 'डेटा' : 'Data'}>
           <SettingRow
             icon="refresh"
             iconColor={theme.accentCyan}
-            title={language === 'mr' ? 'आत्ता ताजे करा' : 'Refresh Now'}
-            subtitle={language === 'mr' ? 'हवामान डेटा अद्यतनित करा' : 'Update weather data immediately'}
+            title={isMr ? 'आत्ता ताजे करा' : 'Refresh Now'}
+            subtitle={isMr ? 'हवामान डेटा अद्यतनित करा' : 'Update weather data immediately'}
             onPress={refresh}
           />
           <SettingRow
             icon="timer"
             iconColor={theme.accentGreen}
-            title={language === 'mr' ? 'स्वयं-ताजे अंतर' : 'Auto-Refresh Interval'}
-            subtitle={language === 'mr' ? 'दर ५ मिनिटांनी' : 'Every 5 minutes'}
+            title={isMr ? 'स्वयं-ताजे अंतर' : 'Auto-Refresh Interval'}
+            subtitle={isMr ? 'दर ५ मिनिटांनी' : 'Every 5 minutes'}
             borderBottom={false}
           />
         </SettingSection>
 
-        {/* ── About AWMD ── */}
-        <SettingSection title={language === 'mr' ? 'AWMD बद्दल' : 'About AWMD'}>
-          <SettingRow
-            icon="business"
-            iconColor={theme.primary}
-            title={language === 'mr' ? 'आळंदी हवामान विभाग' : 'Alandi Met. Department'}
-            subtitle={language === 'mr' ? 'AWMD अधिकृत हवामान सेवा' : 'AWMD Official Weather Service'}
-          />
+        {/* ── Data Sources ── */}
+        <SettingSection title={isMr ? 'डेटा स्रोत' : 'Data Sources'}>
           <SettingRow
             icon="cloud"
             iconColor={theme.accentBlue}
-            title={language === 'mr' ? 'डेटा स्रोत' : 'Data Source'}
-            subtitle="AccuWeather API — Real-time meteorological data"
+            title="AccuWeather API"
+            subtitle={isMr ? 'थेट हवामान डेटा · अधिकृत AccuWeather' : 'Live weather data · Official AccuWeather'}
+            onPress={() => Linking.openURL('https://developer.accuweather.com')}
           />
           <SettingRow
-            icon="map"
+            icon="radar"
             iconColor="#00E5FF"
-            title={language === 'mr' ? 'राडार स्रोत' : 'Radar Source'}
-            subtitle="Windy.com — Live weather radar & layers"
+            title="Windy.com Radar"
+            subtitle={isMr ? 'थेट राडार, पाऊस, वारा, वीज नकाशे' : 'Live radar, rain, wind, lightning maps'}
+            onPress={() => Linking.openURL('https://windy.com')}
           />
+          <SettingRow
+            icon="satellite-alt"
+            iconColor={theme.accentGreen}
+            title="IMD Satellite"
+            subtitle={isMr ? 'IMD अधिकृत उपग्रह प्रतिमा' : 'IMD official satellite imagery'}
+            borderBottom={false}
+            onPress={() => Linking.openURL('https://mausam.imd.gov.in')}
+          />
+        </SettingSection>
+
+        {/* ── About ── */}
+        <SettingSection title={isMr ? 'AWMD बद्दल' : 'About AWMD'}>
           <SettingRow
             icon="place"
             iconColor={theme.alertGreen}
-            title={language === 'mr' ? 'मुख्य क्षेत्र' : 'Primary Area'}
-            subtitle={language === 'mr' ? 'आळंदी म्हातोबाची, पुणे, महाराष्ट्र' : 'Alandi Mhatobachi, Pune, Maharashtra'}
+            title={isMr ? 'मुख्य क्षेत्र' : 'Primary Area'}
+            subtitle={isMr ? 'आळंदी म्हातोबाची, पुणे, महाराष्ट्र' : 'Alandi Mhatobachi, Pune, Maharashtra'}
           />
           <SettingRow
             icon="code"
             iconColor={theme.textTertiary}
-            title={language === 'mr' ? 'आवृत्ती' : 'Version'}
+            title={isMr ? 'आवृत्ती' : 'Version'}
             subtitle="AWMD Weather v1.0 · Expo SDK 53"
             borderBottom={false}
           />
         </SettingSection>
 
-        {/* ── Developer / Legal ── */}
-        <SettingSection title={language === 'mr' ? 'इतर' : 'More'}>
+        {/* ── More ── */}
+        <SettingSection title={isMr ? 'इतर' : 'More'}>
           <SettingRow
             icon="privacy-tip"
             iconColor={theme.accentBlue}
-            title={language === 'mr' ? 'गोपनीयता धोरण' : 'Privacy Policy'}
+            title={isMr ? 'गोपनीयता धोरण' : 'Privacy Policy'}
             onPress={() => Linking.openURL('https://accuweather.com/en/privacy')}
-          />
-          <SettingRow
-            icon="open-in-new"
-            iconColor={theme.accentCyan}
-            title={language === 'mr' ? 'AccuWeather' : 'AccuWeather'}
-            subtitle="dataservice.accuweather.com"
-            onPress={() => Linking.openURL('https://developer.accuweather.com')}
             borderBottom={false}
           />
         </SettingSection>
 
-        {/* AWMD Footer */}
+        {/* Footer */}
         <View style={[styles.footer, { borderTopColor: theme.surfaceBorder }]}>
           <Text style={[styles.footerText, { color: theme.textTertiary }]}>
-            {language === 'mr'
-              ? '© AWMD · आळंदी हवामान व मौसमविभाग\nReal AccuWeather Data · Windy.com Radar'
-              : '© AWMD · Alandi Weather & Meteorological Dept.\nReal AccuWeather Data · Windy.com Radar'}
+            {isMr
+              ? '© AWMD · AccuWeather डेटा · Windy.com राडार\nIMD उपग्रह प्रतिमा'
+              : '© AWMD · AccuWeather Data · Windy.com Radar\nIMD Satellite Imagery'}
           </Text>
         </View>
       </ScrollView>
@@ -314,36 +324,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1,
   },
-  logoBadge: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  headerIconBg: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700' },
+
   scrollContent: { padding: 16, gap: 8 },
 
   profileBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 8,
   },
-  profileLogo: { width: 56, height: 56, borderRadius: 12 },
-  profileTitle: { fontSize: 17, fontWeight: '800', marginBottom: 2 },
-  profileSubtitle: { fontSize: 12, lineHeight: 18 },
-  profileUpdated: { fontSize: 11, marginTop: 4 },
+  logoCircle: {
+    width: 58, height: 58, borderRadius: 16, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  profileLogo: { width: 46, height: 46 },
+  profileTitle: { fontSize: 16, fontWeight: '800', marginBottom: 2 },
+  profileSubtitle: { fontSize: 11, lineHeight: 17 },
+  updatedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  profileUpdated: { fontSize: 11, fontWeight: '600' },
+  versionBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, alignSelf: 'flex-start' },
+  versionText: { fontSize: 10, fontWeight: '700' },
 
   sectionBlock: { marginBottom: 16 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
+  sectionLabel: {
+    fontSize: 10, fontWeight: '700', letterSpacing: 1.2,
+    marginBottom: 8, marginLeft: 4,
+  },
   sectionCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
 
   settingRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 14, paddingVertical: 14,
+    paddingHorizontal: 14, paddingVertical: 13,
   },
-  settingIconCircle: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  settingIconCircle: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   settingTextCol: { flex: 1, gap: 2 },
-  settingTitle: { fontSize: 15, fontWeight: '500' },
-  settingSubtitle: { fontSize: 12, lineHeight: 18 },
+  settingTitle: { fontSize: 14, fontWeight: '500' },
+  settingSubtitle: { fontSize: 11, lineHeight: 17 },
 
-  langRow: { flexDirection: 'row', gap: 8 },
-  langBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
-  langBtnText: { fontSize: 13 },
+  langRow: { flexDirection: 'row', gap: 6 },
+  langBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
+  langBtnText: { fontSize: 12 },
 
   footer: { paddingTop: 20, borderTopWidth: 1, alignItems: 'center', marginTop: 8 },
-  footerText: { fontSize: 11, textAlign: 'center', lineHeight: 18 },
+  footerText: { fontSize: 10, textAlign: 'center', lineHeight: 18 },
 });

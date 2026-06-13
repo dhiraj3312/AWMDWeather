@@ -4,7 +4,7 @@
     "slug": "onspace-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/file_000000004ee471fa8a666891e427a7a8 (1).png",
+    "icon": "./assets/images/awmd-logo.png",
     "scheme": "awmdweather",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/file_000000004ee471fa8a666891e427a7a8 (1).png",
+        "foregroundImage": "./assets/images/awmd-logo.png",
         "backgroundColor": "#0A1628"
       },
       "edgeToEdgeEnabled": false,
